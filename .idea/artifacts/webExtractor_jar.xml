@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="webExtractor:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/webExtractor_jar</output-path>
+    <root id="archive" name="webExtractor.jar">
+      <element id="module-output" name="webExtractor" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../jsoup-1.9.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/../../commons-csv-1.4/commons-csv-1.4.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

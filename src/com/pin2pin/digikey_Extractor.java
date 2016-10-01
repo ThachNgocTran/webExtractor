@@ -25,12 +25,23 @@ public class digikey_Extractor {
     public static String OUTPUT_FOLDER = "data";
     public static String PROBLEM_FILE = "Problem.txt";
 
+    public static String LAST_STAGE = null;
+    public static String LAST_STAGE_FILENAME = null;
+    public static String LATEST_STAGE = null;
+    public static String LATEST_STAGE_FILENAME = null;
+    public static String PATH_RECOVERY = "Recovery.txt";
+
     public static void main(String[] args) {
 
         System.out.println("*** START ***");
 
         try{
             //test();
+
+            if (Files.exists(Paths.get(PATH_RECOVERY))){
+                restoreLastStage();
+            }
+
             long starttime = System.currentTimeMillis();
 
             File directory = new File(OUTPUT_FOLDER);
@@ -47,10 +58,28 @@ public class digikey_Extractor {
 
             int totalNumber = 0;
 
+            LATEST_STAGE = null;
+
             for(SubCat sc: listOfSubCat){
 
                 // for debug
-                //sc = new SubCat("Circular Cable Assemblies", 12172, "http://www.digikey.com/product-search/en/cable-assemblies/circular-cable-assemblies/1573006");
+                //sc = new SubCat("Protective Hoses, Solid Tubing, Sleeving", 1872, "http://www.digikey.com/product-search/en/cables-wires-management/protective-hoses-solid-tubing-sleeving/1704025");
+
+                if (LAST_STAGE != null){
+                    if (sc.getLink().equals(LAST_STAGE)){
+                        // Found last stage
+                        LAST_STAGE = null;
+                    }
+                    else{
+                        System.out.println(String.format("Move next because already done: %s => %s", sc.getName(), sc.getLink()));
+                        continue;
+                    }
+                }
+                else{
+                    //
+                }
+
+                LATEST_STAGE = sc.getLink();
 
                 // Get the "FV" (e.g.: <input type="hidden" name="FV" value="fff40021,fff8048d" />)
                 SubCatResult scRes = graspFvInSubCat(sc);
@@ -59,6 +88,8 @@ public class digikey_Extractor {
 
                 String currTimeStamp = Helper.getTimeStamp();
                 String fileName = null;
+
+                LATEST_STAGE_FILENAME = null;
 
                 for(int page = 1; page <= maxpage; page++){
 
@@ -74,12 +105,16 @@ public class digikey_Extractor {
                                                     sc.getNumberOfItems(),
                                                     currTimeStamp);
 
+                    LATEST_STAGE_FILENAME = fileName;
+
                     // Convert them into agreed format.
                     String dataFinal = standardizeCsvFormat(scRes.getCsvData(), currTimeStamp, "digikey", scRes.getBreadCrumbs());
 
                     // Save it onto disk.
                     writeDataToFile(fileName, dataFinal);
                 }
+
+                LATEST_STAGE_FILENAME = null;
 
                 // *** Validation ***
                 // Check the number of lines
@@ -107,10 +142,21 @@ public class digikey_Extractor {
                         (totalExpectedItems - totalNumber) / averageItemsPerHour));
             }
 
+            LATEST_STAGE = null;
+
             System.out.println("*** SUCCEED ***");
         }
         catch (Exception ex){
             System.out.println("*** Error ***\n" + ex.toString() + "\n" + ex.getMessage());
+        }
+        finally {
+
+            try{
+                keepLastStage(LATEST_STAGE, LATEST_STAGE_FILENAME);
+            }
+            catch (Exception ex){
+                System.out.println(String.format("Problem when keeping last stage: %s", ex.toString()));
+            }
         }
 
         System.out.println("*** END ***");
@@ -367,11 +413,39 @@ public class digikey_Extractor {
         String[] lines = data.split("\n");
 
         if (!Files.exists(Paths.get(fileName))){
-            Files.write(Paths.get(fileName), Arrays.asList(lines), Charset.defaultCharset(), StandardOpenOption.CREATE);
+            //Files.write(Paths.get(fileName), Arrays.asList(lines), Charset.defaultCharset(), StandardOpenOption.CREATE);
+            Files.write(Paths.get(fileName), Arrays.asList(lines), StandardCharsets.UTF_8, StandardOpenOption.CREATE);
         }
         else{
-            Files.write(Paths.get(fileName), Arrays.asList(Arrays.copyOfRange(lines, 1, lines.length)), Charset.defaultCharset(), StandardOpenOption.APPEND);
+            //Files.write(Paths.get(fileName), Arrays.asList(Arrays.copyOfRange(lines, 1, lines.length)), Charset.defaultCharset(), StandardOpenOption.APPEND);
+            Files.write(Paths.get(fileName), Arrays.asList(Arrays.copyOfRange(lines, 1, lines.length)), StandardCharsets.UTF_8, StandardOpenOption.APPEND);
         }
+    }
+
+    public static void keepLastStage(String link, String fileNameToDelete) throws Exception{
+
+        if (fileNameToDelete != null && fileNameToDelete.length() > 0){
+            if (Files.exists(Paths.get(fileNameToDelete))){
+                Files.delete(Paths.get(fileNameToDelete));
+            }
+        }
+
+        if (Files.exists(Paths.get(PATH_RECOVERY))){
+            Files.delete(Paths.get(PATH_RECOVERY));
+        }
+
+        if (link != null && link.length() > 0){
+            Files.write(Paths.get(PATH_RECOVERY), Arrays.asList(new String[]{link}), StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+        }
+
+        System.out.println("Keeping last stage...");
+    }
+
+    public static void restoreLastStage() throws Exception{
+
+        LAST_STAGE = Files.readAllLines(Paths.get(PATH_RECOVERY)).get(0);
+
+        System.out.println("Restoring last stage...");
     }
 }
 

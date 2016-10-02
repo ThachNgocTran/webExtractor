@@ -63,7 +63,7 @@ public class digikey_Extractor {
             for(SubCat sc: listOfSubCat){
 
                 // for debug
-                //sc = new SubCat("Protective Hoses, Solid Tubing, Sleeving", 1872, "http://www.digikey.com/product-search/en/cables-wires-management/protective-hoses-solid-tubing-sleeving/1704025");
+                //sc = new SubCat("Bumpers, Feet, Pads, Grips Kits", 1, "http://www.digikey.com/product-search/en/kits/bumpers-feet-pads-grips-kits/2491655");
 
                 if (LAST_STAGE != null){
                     if (sc.getLink().equals(LAST_STAGE)){
@@ -81,8 +81,19 @@ public class digikey_Extractor {
 
                 LATEST_STAGE = sc.getLink();
 
-                // Get the "FV" (e.g.: <input type="hidden" name="FV" value="fff40021,fff8048d" />)
-                SubCatResult scRes = graspFvInSubCat(sc);
+                SubCatResult scRes = null;
+
+                try{
+                    // Get the "FV" (e.g.: <input type="hidden" name="FV" value="fff40021,fff8048d" />)
+                    scRes = graspFvInSubCat(sc);
+                }
+                catch (MyBusinessException mybe){
+                    String logme = String.format("Link [%s] has problem: [%s]", sc.getLink(), mybe.toString());
+                    System.out.println(logme);
+                    logProblem(logme);
+                    continue;   // just continue, no need to stop.
+                }
+
 
                 int maxpage = (int)Math.ceil(sc.getNumberOfItems() / (double)MAX_PAGESIZE);
 
@@ -101,7 +112,7 @@ public class digikey_Extractor {
                     if (fileName == null || fileName.length() == 0)
                         fileName = String.format("%s/%s#%d#%s.csv",
                                                     OUTPUT_FOLDER,
-                                                    scRes.getBreadCrumbs().replace(">", "__"),
+                                                    scRes.getBreadCrumbs().replace(">", "__").replace("/", "_"),
                                                     sc.getNumberOfItems(),
                                                     currTimeStamp);
 
@@ -126,7 +137,9 @@ public class digikey_Extractor {
                 if (lines - 1 != sc.getNumberOfItems()){
                     //throw new MyBusinessException("Expected items different than number of lines in CSV");
                     // Just continue!
-                    logProblem(String.format("Expected items [%d] different than number of lines in CSV [%d]", sc.getNumberOfItems(), lines - 1));
+                    String logme = String.format("Expected items [%d] different than number of lines in CSV [%d]", sc.getNumberOfItems(), lines - 1);
+                    System.out.println(logme);
+                    logProblem(logme);
                 }
                 // *** END Validation ***
 
@@ -457,4 +470,5 @@ public class digikey_Extractor {
 // Page 2 of this "http://www.digikey.com/product-search/en/cable-assemblies/circular-cable-assemblies/1573006", contains malformed CSV.
 // -,-,MIKQ6-7SH061-ND,MIKQ6-7SH061,"ITT Cannon, LLC",""MICRO Q F STR 18"""" MULTI"",2,2,"257.86000","0","1","*","Active"
 
-
+// Only one item... ==> breadcrumb in div, instead of h1
+// Bumpers, Feet, Pads, Grips Kits ==> http://www.digikey.com/product-search/en/kits/bumpers-feet-pads-grips-kits/2491655

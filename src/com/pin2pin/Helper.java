@@ -121,6 +121,29 @@ public class Helper {
 
         return strInput;
     }
+
+    public static void countLines(String folderPath) throws Exception{
+        File folder = new File(folderPath);
+        File[] listOfFiles = folder.listFiles();
+
+        int totalLines = 0;
+        int totalFiles = 0;
+
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                String fileName = listOfFiles[i].getName();
+                BufferedReader reader = new BufferedReader(new FileReader(folderPath + fileName));
+                int lines = 0;
+                while (reader.readLine() != null) lines++;
+                reader.close();
+
+                totalLines += lines;
+                totalFiles++;
+            }
+        }
+
+        System.out.println(String.format("totalLines = %d; totalFiles = %d", totalLines, totalFiles));
+    }
 }
 
 /*

@@ -47,7 +47,7 @@ public class mouser_Extractor {
         System.out.println("*** START ***");
 
         try{
-
+            test();
             if (args.length > 0){
                 runFrom = Integer.parseInt(args[0]);
 
@@ -133,14 +133,17 @@ public class mouser_Extractor {
             LATEST_SUBCAT = "";
             long starttime = System.currentTimeMillis();
 
-            for(int i = 0; i < listOfFinalSubCats.size(); i++){
+            for(int subCatIndex = 0; subCatIndex < listOfFinalSubCats.size(); subCatIndex++){
 
                 // Try to reach the specificed range of SubCat.
-                if (i >= runFrom && i <= runTo) {
+                if (subCatIndex >= runFrom && subCatIndex <= runTo) {
 
-                    SubCat currSc = listOfFinalSubCats.get(i);
+                    SubCat currSc = listOfFinalSubCats.get(subCatIndex);
 
-                    System.out.println(String.format("Crawling [%s]: [%s]", currSc.getName(), currSc.getLink()));
+                    // for debug
+                    //currSc = new SubCat("RAM Miscellaneous", "http://eu.mouser.com/Semiconductors/Integrated-Circuits-ICs/Memory/RAM-Miscellaneous/_/N-98xmd/");
+
+                    System.out.println(String.format("Crawling Subcat %d/%d [%s]: [%s]", subCatIndex+1, listOfFinalSubCats.size(), currSc.getName(), currSc.getLink()));
 
                     if (LAST_STAGE != null && LAST_STAGE.length() > 0){
                         if (currSc.getLink().equals(LAST_STAGE)){
@@ -176,7 +179,16 @@ public class mouser_Extractor {
                     }
 
                     // Get the total numberOfItems of products.
-                    Element lnkNumProduct = docSubCat.select("a[id=ctl00_ContentMain_liProductsLink]").get(0);
+                    Elements productLink = docSubCat.select("a[id=ctl00_ContentMain_liProductsLink]");
+
+                    // Special case! When a catefory contains one product only.
+                    // http://eu.mouser.com/Semiconductors/Integrated-Circuits-ICs/Memory/RAM-Miscellaneous/_/N-98xmd/
+                    if (productLink.size() == 0){
+                        Helper.logProblem(String.format("%s not have Product Link", currSc.toString()));
+                        continue;
+                    }
+
+                    Element lnkNumProduct = productLink.get(0);
                     Element spanNumber = lnkNumProduct.select("span[id=ctl00_ContentMain_lblProductCount").get(0);
                     String strNumber = spanNumber.text().replace(".", "").replace(",", "").replace("(", "").replace(")","").trim();
                     int numberOfItems = Integer.parseInt(strNumber);
@@ -361,6 +373,11 @@ public class mouser_Extractor {
         System.out.println("*** END ***");
     }
 
+    public static void test() throws Exception{
+        Helper.countLines("c:\\Users\\iRobot\\Desktop\\Work\\data\\");
+        int stop = 100;
+    }
+
     public static void writeDataToFile(String fileName, String headers, String data) throws Exception{
 
         String[] lines = data.split("\n");
@@ -427,7 +444,7 @@ public class mouser_Extractor {
 
         @Override
         public String toString(){
-            return String.format("%s: %s", m_name, m_link);
+            return String.format("Sub cat [%s]: [%s]", m_name, m_link);
         }
     }
 }
